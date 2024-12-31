@@ -195,7 +195,7 @@ namespace Reallusion.Import
 
                 foreach (PhysicsSettings data in settings)
                 {
-                    if (data.name == sourceName)// && data.activate)
+                    if (data.name == sourceName && data.activate)
                     {
                         float rigidMargin = data.softRigidMargin * modelScale;
                         float selfMargin = data.selfCollision ? data.selfMargin * modelScale : 0f;
@@ -313,8 +313,6 @@ namespace Reallusion.Import
                                 }
                             }
                         }
-                        cloth.enabled = data.activate;
-                        this.enabled = data.activate;
                     }
                 }
             }
@@ -365,12 +363,7 @@ namespace Reallusion.Import
                 return false;
             }
         }
-        /*
-        private void Update()
-        {
-            // needed so that the component can have an enable/disable toggle
-        }
-        */
+
 #endif
     }
 }

@@ -341,7 +341,7 @@ namespace Reallusion.Import
             if ((clothPhysics || hairPhysics || springBoneHair) && jsonPhysicsData != null)
             {
                 Physics physics = new Physics(characterInfo, prefabInstance);
-                physics.AddPhysics(true);
+                physics.AddPhysics(false);
             }
 
             if (blenderProject)
@@ -1464,14 +1464,11 @@ namespace Reallusion.Import
                 if (matJson.PathExists("Textures/Normal/Strength"))
                     mat.SetFloat("_NormalScale", matJson.GetFloatValue("Textures/Normal/Strength") / 100f);
             }
-        }        
+        }
 
         private void ConnectHQSkinMaterial(GameObject obj, string sourceName, Material sharedMat, Material mat,
             MaterialType materialType, QuickJSON matJson)
         {
-            bool hasWrinkle = false;
-            if (matJson != null) hasWrinkle = matJson.PathExists("Wrinkle");
-
             ConnectTextureTo(sourceName, mat, "_DiffuseMap", "Diffuse",
                     matJson, "Textures/Base Color",
                     FLAG_SRGB);
@@ -1537,7 +1534,7 @@ namespace Reallusion.Import
                     matJson, "Custom Shader/Image/NormalMap Blend",
                     FLAG_NORMAL);
                  
-                if (characterInfo.FeatureUseWrinkleMaps && hasWrinkle)
+                if (characterInfo.FeatureUseWrinkleMaps && matJson.PathExists("Wrinkle"))
                 {
                     ConnectTextureTo(sourceName, mat, "_WrinkleDiffuseBlend1", "Wrinkle_Diffuse1",
                         matJson, "Wrinkle/Textures/Diffuse_1",
@@ -1597,42 +1594,14 @@ namespace Reallusion.Import
 
             if (matJson != null)
             {
-                float specular = matJson.GetFloatValue("Custom Shader/Variable/_Specular");
-                bool specularBakeZero = false;
-
-                // work around CC4 Head specular export bug, when exporting with bake skin option
-                if (specular == 0.0f && materialType == MaterialType.Head)
-                {
-                    float skinSpecular = 0.0f;
-                    QuickJSON materialsJson = jsonData.FindParentOf(matJson);
-                    if (materialsJson != null)
-                    {
-                        QuickJSON skinJson = null;
-                        if (materialsJson.PathExists("Std_Skin_Body"))
-                            skinJson = materialsJson.GetObjectAtPath("Std_Skin_Body");
-                        else if (materialsJson.PathExists("Std_Skin_Arm"))
-                            skinJson = materialsJson.GetObjectAtPath("Std_Skin_Arm");
-                        else if (materialsJson.PathExists("Std_Skin_Leg"))
-                            skinJson = materialsJson.GetObjectAtPath("Std_Skin_Leg");
-                        if (skinJson != null)
-                            skinSpecular = skinJson.GetFloatValue("Custom Shader/Variable/_Specular");
-                    }
-
-                    if (skinSpecular != 0.0f)
-                    {
-                        Util.LogWarn("Specular export bug in skin material, setting head specular to: " + skinSpecular);
-                        specular = skinSpecular;
-                        specularBakeZero = true;
-                    }
-                }
-
                 mat.SetFloatIf("_AOStrength", Mathf.Clamp01(matJson.GetFloatValue("Textures/AO/Strength") / 100f));
                 if (matJson.PathExists("Textures/Glow/Texture Path"))
                     mat.SetColorIf("_EmissiveColor", Color.white * (matJson.GetFloatValue("Textures/Glow/Strength") / 100f));
                 if (matJson.PathExists("Textures/Normal/Strength"))
                     mat.SetFloatIf("_NormalStrength", matJson.GetFloatValue("Textures/Normal/Strength") / 100f);
                 mat.SetFloatIf("_MicroNormalTiling", matJson.GetFloatValue("Custom Shader/Variable/MicroNormal Tiling"));
-                mat.SetFloatIf("_MicroNormalStrength", matJson.GetFloatValue("Custom Shader/Variable/MicroNormal Strength"));                                
+                mat.SetFloatIf("_MicroNormalStrength", matJson.GetFloatValue("Custom Shader/Variable/MicroNormal Strength"));                
+                float specular = matJson.GetFloatValue("Custom Shader/Variable/_Specular");                
                 float smoothnessMax = Util.CombineSpecularToSmoothness(specular, ValueByPipeline(1f, 0.9f, 1f));
                 mat.SetFloatIf("_SmoothnessMax", smoothnessMax);
                 //float secondarySmoothness = 0.85f * smoothnessMax;
@@ -1648,10 +1617,7 @@ namespace Reallusion.Import
 
                 if (materialType == MaterialType.Head)
                 {
-                    // specular bake bug bakes color blend into diffuse
-                    float colorBlenderStrength = matJson.GetFloatValue("Custom Shader/Variable/BaseColor Blend2 Strength");
-                    if (specularBakeZero) colorBlenderStrength = 0.0f;
-                    mat.SetFloatIf("_ColorBlendStrength", colorBlenderStrength);
+                    mat.SetFloatIf("_ColorBlendStrength", matJson.GetFloatValue("Custom Shader/Variable/BaseColor Blend2 Strength"));
                     mat.SetFloatIf("_NormalBlendStrength", matJson.GetFloatValue("Custom Shader/Variable/NormalMap Blend Strength"));
                     mat.SetFloatIf("_MouthCavityAO", matJson.GetFloatValue("Custom Shader/Variable/Inner Mouth Ao"));
                     mat.SetFloatIf("_NostrilCavityAO", matJson.GetFloatValue("Custom Shader/Variable/Nostril Ao"));
@@ -2043,9 +2009,8 @@ namespace Reallusion.Import
                 mat.SetFloatIf("_BlendStrength", Mathf.Clamp01(matJson.GetFloatValue("Textures/Blend/Strength") / 100f));
                 mat.SetColorIf("_VertexBaseColor", Util.LinearTosRGB(matJson.GetColorValue("Custom Shader/Variable/VertexGrayToColor")));                
                 mat.SetFloatIf("_VertexColorStrength", 1f * matJson.GetFloatValue("Custom Shader/Variable/VertexColorStrength"));
-                mat.SetFloatIf("_BaseColorStrength", 1f * matJson.GetFloatValue("Custom Shader/Variable/BaseColorMapStrength"));                
+                mat.SetFloatIf("_BaseColorStrength", 1f * matJson.GetFloatValue("Custom Shader/Variable/BaseColorMapStrength"));
                 mat.SetFloatIf("_DiffuseStrength", 1f * matJson.GetFloatValue("Custom Shader/Variable/Diffuse Strength"));
-
                 diffuseColor = Util.LinearTosRGB(matJson.GetColorValue("Diffuse Color"));
                 mat.SetColorIf("_DiffuseColor", diffuseColor);
 
@@ -2081,24 +2046,13 @@ namespace Reallusion.Import
                     mat.SetFloatIf("_RimTransmissionIntensity", 0.75f * specMapStrength * Mathf.Pow(rimTransmission, 0.5f));
                     mat.SetFloatIf("_FlowMapFlipGreen", 1f -
                         matJson.GetFloatValue("Custom Shader/Variable/TangentMapFlipGreen"));
-                    mat.SetFloatIf("_SpecularShiftMin",
+                    mat.SetFloatIf("_SpecularShiftMin", 
                         matJson.GetFloatValue("Custom Shader/Variable/BlackColor Reflection Offset Z"));
                     mat.SetFloatIf("_SpecularShiftMax",
-                        matJson.GetFloatValue("Custom Shader/Variable/WhiteColor Reflection Offset Z"));
-                }
-                else if (RP == RenderPipeline.URP && !USE_AMPLIFY_SHADER)
-                {
-                    mat.SetFloatIf("_DiffuseStrength", 1.15f * matJson.GetFloatValue("Custom Shader/Variable/Diffuse Strength"));
-                    mat.SetFloatIf("_SmoothnessMin", 0f);
-                    mat.SetFloatIf("_SpecularMultiplier", Mathf.Lerp(0.1f, 0.5f, specMapStrength * specStrength));
-                    mat.SetFloatIf("_FlowMapFlipGreen", 1f - matJson.GetFloatValue("Custom Shader/Variable/TangentMapFlipGreen"));
-                    mat.SetFloatIf("_SpecularShiftMin",
-                        matJson.GetFloatValue("Custom Shader/Variable/BlackColor Reflection Offset Z"));
-                    mat.SetFloatIf("_SpecularShiftMax",
-                        matJson.GetFloatValue("Custom Shader/Variable/WhiteColor Reflection Offset Z"));
+                        matJson.GetFloatValue("Custom Shader/Variable/WhiteColor Reflection Offset Z"));                    
                 }
                 else
-                {
+                {                    
                     if (USE_AMPLIFY_SHADER)
                     {
                         SetFloatPowerRange(mat, "_SmoothnessMin", smoothnessStrength, 0f, smoothnessMax, smoothnessPowerMod);
@@ -2112,7 +2066,7 @@ namespace Reallusion.Import
                             matJson.GetFloatValue("Custom Shader/Variable/WhiteColor Reflection Offset Z"));
                     }
                     else
-                    {
+                    {                        
                         mat.SetFloatIf("_SmoothnessMin", Util.CombineSpecularToSmoothness(specMapStrength * specStrength, smoothnessStrength));
                     }
                 }
@@ -2528,18 +2482,15 @@ namespace Reallusion.Import
           
         private void AddWrinkleManager(GameObject obj, SkinnedMeshRenderer smr, Material mat, QuickJSON matJson)
         {
-            if (matJson != null)
+            WrinkleManager wm = obj.AddComponent<WrinkleManager>();
+            wm.headMaterial = mat;
+            wm.skinnedMeshRenderer = smr;
+            float overallWeight = 1;
+            if (matJson.PathExists("Wrinkle/WrinkleOverallWeight"))
             {
-                WrinkleManager wm = obj.AddComponent<WrinkleManager>();
-                wm.headMaterial = mat;
-                wm.skinnedMeshRenderer = smr;
-                float overallWeight = 1;
-                if (matJson.PathExists("Wrinkle/WrinkleOverallWeight"))
-                {
-                    overallWeight = matJson.GetFloatValue("Wrinkle/WrinkleOverallWeight");
-                }
-                wm.BuildConfig(BuildWrinkleProps(matJson), overallWeight);
+                overallWeight = matJson.GetFloatValue("Wrinkle/WrinkleOverallWeight");
             }
+            wm.BuildConfig(BuildWrinkleProps(matJson), overallWeight);
         }
 
         private void CopyWrinkleMasks(string folder)

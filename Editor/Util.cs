@@ -391,13 +391,7 @@ namespace Reallusion.Import
                 if (shader != null)
                 {
                     if (shader.name.iEquals(name))
-                    {                        
-#if UNITY_2020_3_OR_NEWER                        
-                        if (Application.platform == RuntimePlatform.OSXEditor)
-                            shader.EnableKeyword("_MAC_OS");
-                        else
-                            shader.DisableKeyword("_MAC_OS");
-#endif
+                    {
                         return shader;
                     }
                 }
@@ -1140,29 +1134,6 @@ namespace Reallusion.Import
             }
             return false;
         }
-
-
-
-
-
-
-        public static GameObject EditPrefabContents(GameObject prefabAsset)
-        {
-            GameObject prefabRoot;
-            string currentPrefabAssetPath = AssetDatabase.GetAssetPath(prefabAsset);
-            prefabRoot = PrefabUtility.LoadPrefabContents(currentPrefabAssetPath);
-            return prefabRoot;
-        }
-
-        public static void SaveAndUnloadPrefabContents(GameObject prefabAsset, GameObject prefabContents)
-        {
-            string currentPrefabAssetPath = AssetDatabase.GetAssetPath(prefabAsset);
-            PrefabUtility.SaveAsPrefabAsset(prefabContents, currentPrefabAssetPath, out bool success);
-            PrefabUtility.UnloadPrefabContents(prefabContents);
-        }
-
-
-
 
         private static Editor MakeEditor(string guid)
         {

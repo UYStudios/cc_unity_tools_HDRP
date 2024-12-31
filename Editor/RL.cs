@@ -23,7 +23,6 @@ using System;
 using System.IO;
 using UnityEditor.Animations;
 using System.Reflection;
-using System.Linq;
 
 namespace Reallusion.Import
 {
@@ -57,97 +56,66 @@ namespace Reallusion.Import
             { "RL_G6_Standard_Series", BaseGeneration.G1 },
             { "NonStdLookAtDataCopyFromCCBase", BaseGeneration.ActorCore },
             { "ActorBuild", BaseGeneration.ActorBuild },
-            { "ActorScan", BaseGeneration.ActorCore },
-            { "AccuRig", BaseGeneration.ActorBuild }
+            { "ActorScan", BaseGeneration.ActorCore }
         };
-
-        public static bool CharacterContainsBones(Transform[] bones, string[] boneNames)
-        {
-            foreach (string n in boneNames)
-            {
-                bool found = false;
-                foreach (Transform b in bones)
-                {
-                    if (b.name == n)
-                    {
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) return false;
-            }
-            return true;
-        }
         
         public static BaseGeneration GetCharacterGeneration(GameObject fbx, string generationString)
         {
-            if (fbx)
+            if (!string.IsNullOrEmpty(generationString))
             {
-                Transform[] children = fbx.transform.GetComponentsInChildren<Transform>(true);
-
-                if (!string.IsNullOrEmpty(generationString))
-                {
-                    if (GENERATION_MAP.TryGetValue(generationString, out BaseGeneration gen))
+                if (GENERATION_MAP.TryGetValue(generationString, out BaseGeneration gen)) return gen;
+            }
+            else
+            {
+                if (fbx)
+                {                    
+                    Transform[] children = fbx.transform.GetComponentsInChildren<Transform>(true);
+                    foreach (Transform child in children)
                     {
-                        // some ActorScan characters are really GameBase
-                        if (CharacterContainsBones(children, new string[] { "head", "pelvis", "spine_02" }))
-                        {                            
-                            gen = BaseGeneration.GameBase;
-                        }
+                        string objectName = child.gameObject.name;
 
-                        return gen;
-                    }
-                }
-                
-                // check game base
-                if (CharacterContainsBones(children, new string[] { "head", "pelvis", "spine_02" }))
-                    return BaseGeneration.GameBase;
-
-                foreach (Transform child in children)
-                {
-                    string objectName = child.gameObject.name;
-
-                    if (objectName.iContains("RootNode_0_")) return BaseGeneration.ActorCore;
-                    if (objectName.iContains("CC_Base_L_Pinky3")) return BaseGeneration.G3;
-                    if (objectName.iContains("pinky_03_l")) return BaseGeneration.GameBase;
-                    if (objectName.iContains("CC_Base_L_Finger42")) return BaseGeneration.G1;
-                    if (objectName.iContains("RL_BoneRoot"))
-                    {
-                        if (child.Find("CC_Base_Hip"))
+                        if (objectName.iContains("RootNode_0_")) return BaseGeneration.ActorCore;
+                        if (objectName.iContains("CC_Base_L_Pinky3")) return BaseGeneration.G3;
+                        if (objectName.iContains("pinky_03_l")) return BaseGeneration.GameBase;
+                        if (objectName.iContains("CC_Base_L_Finger42")) return BaseGeneration.G1;
+                        if (objectName.iContains("RL_BoneRoot"))
                         {
-                            Material acMat = GetActorCoreSingleMaterial(fbx);
-                            if (acMat) return BaseGeneration.ActorCore;
-                            else return BaseGeneration.G3;
+                            if (child.Find("CC_Base_Hip"))
+                            {
+                                Material acMat = GetActorCoreSingleMaterial(fbx);
+                                if (acMat) return BaseGeneration.ActorCore;
+                                else return BaseGeneration.G3;
+                            }
                         }
                     }
-                }
 
-                foreach (Transform child in children)
-                {
-                    string objectName = child.gameObject.name;
-
-                    if (objectName.iContains("CC_Game_Body") || objectName.iContains("CC_Game_Tongue"))
+                    foreach (Transform child in children)
                     {
-                        return BaseGeneration.GameBase;
-                    }
+                        string objectName = child.gameObject.name;
 
-                    if (objectName == "CC_Base_Body")
-                    {
-                        Renderer renderer = child.GetComponent<Renderer>();
-                        foreach (Material mat in renderer.sharedMaterials)
+                        if (objectName.iContains("CC_Game_Body") || objectName.iContains("CC_Game_Tongue"))
                         {
-                            if (!mat) continue;
+                            return BaseGeneration.GameBase;
+                        }
 
-                            string materialName = mat.name;
-                            if (materialName.iContains("Skin_Body"))
-                                return BaseGeneration.G1;
-                            else if (materialName.iContains("Std_Skin_Body"))
-                                return BaseGeneration.G3;
-                            else if (materialName.iContains("ga_skin_body"))
-                                return BaseGeneration.GameBase;
+                        if (objectName == "CC_Base_Body")
+                        {
+                            Renderer renderer = child.GetComponent<Renderer>();
+                            foreach (Material mat in renderer.sharedMaterials)
+                            {
+                                if (!mat) continue;
+
+                                string materialName = mat.name;
+                                if (materialName.iContains("Skin_Body"))
+                                    return BaseGeneration.G1;
+                                else if (materialName.iContains("Std_Skin_Body"))
+                                    return BaseGeneration.G3;
+                                else if (materialName.iContains("ga_skin_body"))
+                                    return BaseGeneration.GameBase;
+                            }
                         }
                     }
-                }
+                }                
             }
             return BaseGeneration.Unknown;
         }

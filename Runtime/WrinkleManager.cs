@@ -594,11 +594,8 @@ namespace Reallusion.Import
 
             UpdateBlendShapeIndices();
         }
-
-		/// <summary>
-		/// Update the blend shape indices for the wrinkle configurations.
-		/// </summary>
-        public void UpdateBlendShapeIndices()
+         
+        private void UpdateBlendShapeIndices()
         {
             if (skinnedMeshRenderer && headMaterial)
             {
@@ -652,10 +649,7 @@ namespace Reallusion.Import
                 {
                     foreach (Material mat in smr.materials)
                     {
-                        // catch a few more possibilities for wrinkle shaders
-                        if (mat.IsKeywordEnabled("BOOLEAN_IS_HEAD_ON") ||
-                            mat.IsKeywordEnabled("BOOLEAN_USE_WRINKLE_ON") ||
-                            mat.shader.name.Contains("_HeadShaderWrinkle_"))
+                        if (mat.IsKeywordEnabled("BOOLEAN_IS_HEAD_ON"))
                         {
                             headMaterial = mat;
                             break;

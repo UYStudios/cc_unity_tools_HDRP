@@ -32,16 +32,14 @@ namespace Reallusion.Import
         { 
             NoFeatures = 0, 
             Tessellation = 1, 
-            ClothPhysics = 2, // group flag to allow selection between UnityClothPhysics & MagicaCloth
-            HairPhysics = 4, // group flag to allow selection between UnityClothHairPhysics & MagicaClothHairPhysics
-            SpringBoneHair = 8,  // dynamic bone springbones
+            ClothPhysics = 2, 
+            HairPhysics = 4,
+            SpringBoneHair = 8, 
             WrinkleMaps = 16,
-            MagicaCloth = 32, // Magica Mesh Cloth for clothing items
-            MagicaBone = 64, // Magica Bone Cloth for hair
-            UnityClothPhysics = 128, // Unity Cloth for clothing items 
-            UnityClothHairPhysics = 256, // Unity Cloth for hair items
-            MagicaClothHairPhysics = 512, // Magica Mesh Cloth for hair items
-            SpringBonePhysics = 1024  // group flag to allow selection between SpringBoneHair & MagicaBone
+            MagicaCloth = 32,
+            MagicaBone = 64,
+            UnityClothPhysics = 128,
+            UnityClothHairPhysics = 256
         }
 
         // 'radio groups' of mutually exclusive settings
@@ -54,11 +52,6 @@ namespace Reallusion.Import
         public static ShaderFeatureFlags[] hairGroup =
         {
             ShaderFeatureFlags.UnityClothHairPhysics, // UnityEngine.Cloth instance for hair objects
-            ShaderFeatureFlags.MagicaClothHairPhysics // Magica Cloth 2 'Mesh Cloth' for hair objects
-        };
-
-        public static ShaderFeatureFlags[] springGroup =
-        {
             ShaderFeatureFlags.SpringBoneHair, // DynamicBone springbones
             ShaderFeatureFlags.MagicaBone // MagicaCloth2 instance set to 'Bone Cloth' mode for springbones
         };
@@ -741,25 +734,22 @@ namespace Reallusion.Import
         {
             QuickJSON objectsJson = ObjectsJsonData;
 
-            if (objectsJson != null)
+            foreach (MultiValue mvMesh in objectsJson.values)
             {
-                foreach (MultiValue mvMesh in objectsJson.values)
+                if (mvMesh.Type == MultiType.Object)
                 {
-                    if (mvMesh.Type == MultiType.Object)
+                    QuickJSON objJson = mvMesh.ObjectValue;
+                    string objName = mvMesh.Key;
+                    string materialsPath = ObjectsMaterialsJsonPath(objName);
+                    QuickJSON materialsJson = objectsJson.GetObjectAtPath(materialsPath);
+                    if (materialsJson != null)
                     {
-                        QuickJSON objJson = mvMesh.ObjectValue;
-                        string objName = mvMesh.Key;
-                        string materialsPath = ObjectsMaterialsJsonPath(objName);
-                        QuickJSON materialsJson = objectsJson.GetObjectAtPath(materialsPath);
-                        if (materialsJson != null)
+                        foreach (MultiValue mvMat in materialsJson.values)
                         {
-                            foreach (MultiValue mvMat in materialsJson.values)
+                            if (mvMat.Type == MultiType.Object)
                             {
-                                if (mvMat.Type == MultiType.Object)
-                                {
-                                    QuickJSON matjson = mvMat.ObjectValue;
-                                    if (matjson.PathExists(path)) return true;
-                                }
+                                QuickJSON matjson = mvMat.ObjectValue;
+                                if (matjson.PathExists(path)) return true;
                             }
                         }
                     }
@@ -990,25 +980,6 @@ namespace Reallusion.Import
                         if (!GroupHasFlagSet(hairGroup))
                         {
                             ShaderFlags |= ShaderFeatureFlags.UnityClothHairPhysics;
-                        }
-
-                        break;
-                    }
-                case ShaderFeatureFlags.SpringBonePhysics:
-                    {
-                        bool dyn = ImporterWindow.Current.DynamicBoneAvailable;
-                        bool mag = ImporterWindow.Current.MagicaCloth2Available;
-
-                        if (dyn && mag)
-                        {
-                            ShaderFlags |= ShaderFeatureFlags.MagicaBone;
-                        }
-                        else
-                        {
-                            if (mag)
-                                ShaderFlags |= ShaderFeatureFlags.MagicaBone; 
-                            else if (dyn)
-                                ShaderFlags |= ShaderFeatureFlags.SpringBoneHair;
                         }
 
                         break;
